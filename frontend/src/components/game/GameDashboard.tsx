@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
 
 import { useGameStore } from "@/store/gameStore";
+import { TileCard } from "./TileCard";
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
@@ -11,31 +12,6 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
       <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
       <p className="mt-2 text-xl font-semibold text-white">{value}</p>
     </div>
-  );
-}
-
-function TileCard({
-  label,
-  value,
-  accent,
-}: {
-  label: string;
-  value: number | null;
-  accent: string;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 18, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: -12, scale: 0.98 }}
-      transition={{ duration: 0.32 }}
-      className={`group relative rounded-2xl border border-white/10 bg-slate-900/80 p-5 shadow-lg transition hover:-translate-y-0.5 ${accent}`}
-    >
-      <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-sky-400/90 to-violet-400/90" />
-      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Tile</p>
-      <p className="mt-3 text-lg font-semibold text-white">{label}</p>
-      <p className="mt-2 text-3xl font-bold text-sky-300">{value ?? "-"}</p>
-    </motion.div>
   );
 }
 
@@ -95,12 +71,12 @@ export function GameDashboard() {
             <TileCard
               label={hand.anchor_label ?? "Anchor"}
               value={hand.anchor_value}
-              accent="hover:shadow-sky-500/15"
+              accentClassName="hover:shadow-[0_14px_28px_rgba(245,158,11,0.35)]"
             />
             <TileCard
               label={hand.active_label ?? "Active"}
               value={hand.active_value}
-              accent="hover:shadow-violet-500/15"
+              accentClassName="hover:shadow-[0_14px_28px_rgba(234,179,8,0.38)]"
             />
           </motion.div>
         </AnimatePresence>

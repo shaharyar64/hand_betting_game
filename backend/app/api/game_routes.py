@@ -95,22 +95,26 @@ def _deck_payload(engine: HandBettingGameEngine) -> dict[str, int]:
     }
 
 
+def _game_state_payload(engine: HandBettingGameEngine) -> dict[str, object]:
+    return {
+        "score": engine.state.score,
+        "game_status": engine.state.game_status,
+        "game_over_reason": engine.state.game_over_reason,
+        "hand": _current_hand_payload(engine),
+        "tiles": _current_hand_tiles(engine),
+        "deck": _deck_payload(engine),
+        "history_count": len(engine.state.history),
+        "history": [_serialize_history_entry(entry) for entry in reversed(engine.state.history)],
+    }
+
+
 @router.post("/new-game")
 async def new_game() -> dict[str, object]:
     engine = store.reset()
     return {
         "ok": True,
         "message": "Game started",
-        "data": {
-            "score": engine.state.score,
-            "game_status": engine.state.game_status,
-            "game_over_reason": engine.state.game_over_reason,
-            "hand": _current_hand_payload(engine),
-            "tiles": _current_hand_tiles(engine),
-            "deck": _deck_payload(engine),
-            "history_count": len(engine.state.history),
-            "history": [_serialize_history_entry(entry) for entry in reversed(engine.state.history)],
-        },
+        "data": _game_state_payload(engine),
     }
 
 
@@ -179,4 +183,29 @@ async def get_leaderboard() -> dict[str, object]:
         "data": {
             "top": [asdict(item) for item in store.leaderboard.get_top_scores()],
         },
+    }
+
+
+@router.post("/debug/game-over/{mode}")
+async def debug_force_game_over(mode: str) -> dict[str, object]:
+    normalized = mode.lower()
+    if normalized == "terminal-tile":
+        tile_forced = store.engine.force_terminal_special_tile()
+        if not tile_forced:
+            raise HTTPException(
+                status_code=400,
+                detail="No tracked non-number tile yet. Resolve at least one round first.",
+            )
+    elif normalized == "reshuffle-limit":
+        store.engine.force_reshuffle_limit_game_over()
+    else:
+        raise HTTPException(status_code=400, detail="Mode must be 'terminal-tile' or 'reshuffle-limit'.")
+
+    if store.engine.state.game_status == "game_over":
+        store.add_result(score=store.engine.state.score)
+
+    return {
+        "ok": True,
+        "message": f"Forced game over mode: {normalized}",
+        "data": _game_state_payload(store.engine),
     }

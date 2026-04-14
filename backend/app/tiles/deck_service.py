@@ -94,3 +94,10 @@ class DeckManagementService:
         self._state.reshuffle_count += 1
         self.shuffle_deck()
 
+    def force_reshuffle_limit_reached(self) -> None:
+        """
+        Test helper: force deck state into a terminal reshuffle condition.
+        """
+        self._state.reshuffle_count = self._max_reshuffle_count
+        self._state.draw_pile.clear()
+

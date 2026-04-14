@@ -6,6 +6,6 @@
     "build:frontend": "npm --prefix frontend run build",
     "lint:frontend": "npm --prefix frontend run lint",
     "setup:backend": "python -m pip install -r backend/requirements.txt",
-    "dev:backend": "python -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000"
+    "dev:backend": "python -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8001"
   }
 }

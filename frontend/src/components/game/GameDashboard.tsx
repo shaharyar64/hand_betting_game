@@ -7,11 +7,18 @@ import { useEffect } from "react";
 import { useGameStore } from "@/store/gameStore";
 import { TileCard } from "./TileCard";
 
+const GAME_OVER_REASON_LABELS: Record<string, string> = {
+  terminal_tile_or_reshuffle_limit:
+    "A special tile hit its terminal value (0 or 10), or the draw pile exhausted for the 3rd time.",
+  draw_unavailable_or_max_reshuffles:
+    "No more tiles can be drawn because the reshuffle limit has been reached.",
+};
+
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+    <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
       <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-2 text-xl font-semibold text-white">{value}</p>
+      <p className="mt-2 text-xl font-semibold text-slate-100">{value}</p>
     </div>
   );
 }
@@ -37,6 +44,10 @@ export function GameDashboard() {
   const latestOutcome = history[0]?.outcome ?? null;
   const tileResultState =
     gameStatus === "awaiting_bet" || gameStatus === "resolved" ? latestOutcome : null;
+  const gameIsOver = gameStatus === "game_over";
+  const gameOverSummary = gameOverReason
+    ? (GAME_OVER_REASON_LABELS[gameOverReason] ?? gameOverReason)
+    : "A game-over condition was reached.";
 
   const pageVariants: Variants = {
     hidden: { opacity: 0, y: 14 },
@@ -65,7 +76,7 @@ export function GameDashboard() {
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 330, damping: 24 }}
-        className="rounded-2xl border border-white/10 bg-slate-900/60 p-6"
+        className="rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl shadow-black/30"
       >
         <h1 className="text-3xl font-bold tracking-tight text-white">Hand Betting Game</h1>
         <p className="mt-2 text-sm text-slate-300">
@@ -74,7 +85,7 @@ export function GameDashboard() {
         <div className="mt-4">
           <Link
             href="/"
-            className="inline-flex items-center rounded-lg border border-white/20 px-3 py-2 text-xs font-medium text-white transition hover:bg-white/10"
+            className="inline-flex items-center rounded-lg border border-slate-500 px-3 py-2 text-xs font-medium text-slate-100 transition hover:bg-slate-800"
           >
             Exit to Landing
           </Link>
@@ -95,7 +106,7 @@ export function GameDashboard() {
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: "spring", stiffness: 330, damping: 24 }}
-        className="rounded-2xl border border-white/10 bg-slate-900/60 p-6"
+        className="rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl shadow-black/30"
       >
         <h2 className="text-lg font-semibold text-white">Tiles</h2>
         <AnimatePresence mode="wait">
@@ -110,12 +121,14 @@ export function GameDashboard() {
             <TileCard
               label={tiles[0]?.label ?? hand.anchor_label ?? "Anchor"}
               value={tiles[0]?.value ?? hand.anchor_value}
+              type={tiles[0]?.type}
               resultState={tileResultState}
               accentClassName="ring-1 ring-white/10"
             />
             <TileCard
               label={tiles[1]?.label ?? hand.active_label ?? "Active"}
               value={tiles[1]?.value ?? hand.active_value}
+              type={tiles[1]?.type}
               resultState={tileResultState}
               accentClassName="ring-1 ring-white/10"
             />
@@ -129,8 +142,8 @@ export function GameDashboard() {
             transition={{ type: "spring", stiffness: 520, damping: 28, mass: 0.6 }}
             type="button"
             onClick={() => void placeBet("higher")}
-            disabled={loading}
-            className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={loading || gameIsOver}
+            className="rounded-lg border border-emerald-300 bg-emerald-400 px-4 py-2 text-sm font-medium text-emerald-950 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Bet Higher
           </motion.button>
@@ -140,8 +153,8 @@ export function GameDashboard() {
             transition={{ type: "spring", stiffness: 520, damping: 28, mass: 0.6 }}
             type="button"
             onClick={() => void placeBet("lower")}
-            disabled={loading}
-            className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={loading || gameIsOver}
+            className="rounded-lg border border-rose-300 bg-rose-400 px-4 py-2 text-sm font-medium text-rose-950 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Bet Lower
           </motion.button>
@@ -152,7 +165,7 @@ export function GameDashboard() {
             type="button"
             onClick={() => void startNewGame()}
             disabled={loading}
-            className="rounded-lg border border-white/20 px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg border border-slate-500 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
             New Game
           </motion.button>
@@ -160,45 +173,90 @@ export function GameDashboard() {
       </motion.section>
 
       <section className="grid gap-4 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-6">
-          <h3 className="text-base font-semibold text-white">History</h3>
+        <div className="rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl shadow-black/30">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-base font-semibold text-white">History</h3>
+              <p className="mt-1 text-xs text-slate-400">
+                Previous Total = Anchor + Active, Next Total = Active + Drawn
+              </p>
+            </div>
+          </div>
           {history.length > 0 ? (
-            <motion.div layout className="mt-3 max-h-72 space-y-2 overflow-auto pr-1 text-sm">
+            <motion.div
+              layout
+              className="history-scroll mt-3 max-h-72 space-y-2 overflow-auto pr-2 text-sm"
+            >
               <AnimatePresence initial={false}>
-                {history.map((round, index) => (
+                {history.map((round) => (
                   <motion.div
-                    layout
-                  key={round.id}
+                    key={round.id}
                     initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: Math.max(0.45, 1 - index * 0.12), y: 0 }}
+                    animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ type: "spring", stiffness: 360, damping: 25 }}
-                    style={{ marginTop: index === 0 ? 0 : -2 }}
-                    className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-slate-300"
+                    className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-slate-300"
                   >
-                    <p className="font-medium text-slate-200">
-                      Hand #{round.id}: {round.bet} ({round.previousTotal} → {round.nextTotal})
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-medium text-slate-100">Hand #{round.id}</p>
+                      <span
+                        className={`rounded px-2 py-0.5 text-xs font-semibold ${
+                          round.outcome === "win"
+                            ? "bg-emerald-900/60 text-emerald-200"
+                            : "bg-rose-900/60 text-rose-200"
+                        }`}
+                      >
+                        {round.outcome.toUpperCase()}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-300">
+                      Bet:{" "}
+                      <span className="font-semibold text-slate-100">
+                        {round.bet === "higher" ? "Higher" : "Lower"}
+                      </span>{" "}
+                      | Totals:{" "}
+                      <span className="font-semibold text-slate-100">
+                        {round.previousTotal} → {round.nextTotal}
+                      </span>{" "}
+                      | Score Delta:{" "}
+                      <span className="font-semibold text-slate-100">{round.scoreDelta}</span> |
+                      Score After:{" "}
+                      <span className="font-semibold text-slate-100">{round.scoreAfter}</span>
                     </p>
-                    <p className="text-xs text-slate-400">
-                      {round.outcome.toUpperCase()} | Delta: {round.scoreDelta} | Score:{" "}
-                      {round.scoreAfter}
-                    </p>
-                    <div className="mt-2 grid grid-cols-3 gap-2">
-                      <TileCard
-                        label={round.tiles.anchor.label}
-                        value={round.tiles.anchor.value}
-                        accentClassName="scale-[0.94]"
-                      />
-                      <TileCard
-                        label={round.tiles.active.label}
-                        value={round.tiles.active.value}
-                        accentClassName="scale-[0.94]"
-                      />
-                      <TileCard
-                        label={round.tiles.drawn.label}
-                        value={round.tiles.drawn.value}
-                        accentClassName="scale-[0.94]"
-                      />
+                    <div className="mt-3 grid grid-cols-3 gap-3">
+                      <div>
+                        <p className="mb-1 text-[11px] uppercase tracking-wide text-slate-400">
+                          Anchor
+                        </p>
+                        <TileCard
+                          label={round.tiles.anchor.label}
+                          value={round.tiles.anchor.value}
+                          type={round.tiles.anchor.type}
+                          accentClassName="scale-[0.94]"
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-1 text-[11px] uppercase tracking-wide text-slate-400">
+                          Active
+                        </p>
+                        <TileCard
+                          label={round.tiles.active.label}
+                          value={round.tiles.active.value}
+                          type={round.tiles.active.type}
+                          accentClassName="scale-[0.94]"
+                        />
+                      </div>
+                      <div>
+                        <p className="mb-1 text-[11px] uppercase tracking-wide text-slate-400">
+                          Drawn
+                        </p>
+                        <TileCard
+                          label={round.tiles.drawn.label}
+                          value={round.tiles.drawn.value}
+                          type={round.tiles.drawn.type}
+                          accentClassName="scale-[0.94]"
+                        />
+                      </div>
                     </div>
                   </motion.div>
                 ))}
@@ -209,7 +267,7 @@ export function GameDashboard() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-6">
+        <div className="rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl shadow-black/30">
           <h3 className="text-base font-semibold text-white">Leaderboard (Top 5)</h3>
           <ol className="mt-3 space-y-2 text-sm text-slate-300">
             {leaderboard.length > 0 ? (
@@ -227,24 +285,24 @@ export function GameDashboard() {
       </section>
 
       {error ? (
-        <p className="rounded-lg border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+        <p className="rounded-lg border border-rose-400/60 bg-rose-950/50 px-4 py-3 text-sm text-rose-200">
           {error}
         </p>
       ) : null}
 
-      {gameStatus === "game_over" ? (
+      {gameIsOver ? (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2, ease: "easeOut" }}
-          className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-6"
+          className="rounded-2xl border border-amber-300/50 bg-amber-950/60 p-6"
         >
           <h3 className="text-xl font-semibold text-amber-200">Game Over</h3>
           <p className="mt-2 text-sm text-amber-100">
             Final Score: <span className="font-semibold">{score}</span>
           </p>
           <p className="mt-1 text-xs text-amber-200/90">
-            Reason: {gameOverReason ?? "terminal condition reached"}
+            Reason: {gameOverSummary}
           </p>
           <div className="mt-4 flex gap-3">
             <motion.button
@@ -253,13 +311,13 @@ export function GameDashboard() {
               transition={{ type: "spring", stiffness: 520, damping: 28, mass: 0.6 }}
               type="button"
               onClick={() => void startNewGame()}
-              className="rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-slate-900"
+              className="rounded-lg border border-amber-200 bg-amber-300 px-4 py-2 text-sm font-semibold text-amber-950"
             >
               Play Again
             </motion.button>
             <Link
               href="/"
-              className="inline-flex items-center rounded-lg border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+              className="inline-flex items-center rounded-lg border border-slate-500 px-4 py-2 text-sm font-medium text-slate-100 transition hover:bg-slate-800"
             >
               Back to Landing
             </Link>

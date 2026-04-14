@@ -5,9 +5,59 @@ import { motion, type Variants } from "framer-motion";
 type TileCardProps = {
   label: string;
   value: number | null;
+  type?: string;
   resultState?: "win" | "lose" | null;
   accentClassName?: string;
 };
+
+function getTilePalette(tileType: string | undefined, label: string) {
+  const normalizedLabel = label.trim().toLowerCase();
+  const normalizedType = (tileType ?? "").trim().toLowerCase();
+
+  if (normalizedType === "dragon" && normalizedLabel === "red") {
+    return {
+      topBarClassName: "bg-rose-500",
+      typeClassName: "text-rose-700",
+      labelClassName: "text-rose-950",
+      borderClassName: "border-rose-300",
+      backgroundClassName: "bg-rose-50",
+    };
+  }
+  if (normalizedType === "dragon" && normalizedLabel === "green") {
+    return {
+      topBarClassName: "bg-emerald-500",
+      typeClassName: "text-emerald-700",
+      labelClassName: "text-emerald-950",
+      borderClassName: "border-emerald-300",
+      backgroundClassName: "bg-emerald-50",
+    };
+  }
+  if (normalizedType === "dragon" && normalizedLabel === "white") {
+    return {
+      topBarClassName: "bg-zinc-500",
+      typeClassName: "text-zinc-700",
+      labelClassName: "text-zinc-900",
+      borderClassName: "border-zinc-300",
+      backgroundClassName: "bg-zinc-50",
+    };
+  }
+  if (normalizedType === "wind" || ["e", "w", "n", "s"].includes(normalizedLabel)) {
+    return {
+      topBarClassName: "bg-cyan-600",
+      typeClassName: "text-cyan-700",
+      labelClassName: "text-cyan-950",
+      borderClassName: "border-cyan-300",
+      backgroundClassName: "bg-cyan-50",
+    };
+  }
+  return {
+    topBarClassName: "bg-amber-400",
+    typeClassName: "text-amber-700",
+    labelClassName: "text-amber-950",
+    borderClassName: "border-amber-300",
+    backgroundClassName: "bg-amber-50",
+  };
+}
 
 const tileVariants: Variants = {
   initial: { opacity: 0, y: 14, scale: 0.94 },
@@ -39,9 +89,11 @@ const hoverAnimation = {
 export function TileCard({
   label,
   value,
+  type,
   resultState = null,
   accentClassName = "",
 }: TileCardProps) {
+  const tilePalette = getTilePalette(type, label);
   const glowShadow =
     resultState === "win"
       ? "0 0 0 1px rgba(74, 222, 128, 0.45), 0 8px 22px rgba(34, 197, 94, 0.22)"
@@ -56,12 +108,14 @@ export function TileCard({
       animate="enter"
       exit="exit"
       whileHover={hoverAnimation}
-      className={`group relative overflow-hidden rounded-2xl border border-[#d9c39a] bg-gradient-to-b from-[#fff5db] to-[#f3e1b5] p-5 text-[#3f2d11] shadow-[0_8px_20px_rgba(0,0,0,0.25)] ${accentClassName}`}
+      className={`group relative overflow-hidden rounded-2xl border p-5 text-amber-950 shadow-[0_8px_20px_rgba(0,0,0,0.25)] ${tilePalette.borderClassName} ${tilePalette.backgroundClassName} ${accentClassName}`}
       style={{ boxShadow: glowShadow }}
     >
-      <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-[#eab308] via-[#f59e0b] to-[#f97316]" />
-      <p className="text-[11px] uppercase tracking-[0.18em] text-[#7a5a22]">Mahjong Tile</p>
-      <p className="mt-3 text-lg font-semibold">{label}</p>
+      <div className={`absolute inset-x-0 top-0 h-1 ${tilePalette.topBarClassName}`} />
+      <p className={`text-[11px] uppercase tracking-[0.18em] ${tilePalette.typeClassName}`}>
+        Mahjong Tile
+      </p>
+      <p className={`mt-3 text-lg font-semibold ${tilePalette.labelClassName}`}>{label}</p>
       <p className="mt-2 text-3xl font-bold">{value ?? "-"}</p>
     </motion.article>
   );

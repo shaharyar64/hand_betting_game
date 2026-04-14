@@ -77,6 +77,7 @@ class HandBettingGameEngine:
         self.state = GameState(score=initial_score)
         # Dynamic value overrides (mainly for non-number tiles).
         self._dynamic_values: dict[UUID, int] = {}
+        self._tile_registry: dict[UUID, Tile] = {}
 
     def start_hand(self) -> GameState:
         self._ensure_not_game_over()
@@ -180,6 +181,7 @@ class HandBettingGameEngine:
 
         # Capture baseline values once to support dynamic scaling by tile id.
         self._dynamic_values.setdefault(tile.id, tile.value)
+        self._tile_registry[tile.id] = tile
         return tile
 
     def _tile_value(self, tile: Tile) -> int:
@@ -207,6 +209,36 @@ class HandBettingGameEngine:
     def _ensure_not_game_over(self) -> None:
         if self.state.game_status == "game_over":
             raise RuntimeError("Game is over. Create a new engine instance for a new game.")
+
+    def force_terminal_special_tile(self, terminal_value: int = SCALING_MAX) -> bool:
+        """
+        Test helper: set a tracked non-number tile to a terminal value.
+        Returns False when no tracked special tile is available yet.
+        """
+        fallback_tile_id: UUID | None = None
+        for tile_id, tile in self._tile_registry.items():
+            if fallback_tile_id is None:
+                fallback_tile_id = tile_id
+            if tile.type == "number":
+                continue
+            self._dynamic_values[tile_id] = terminal_value
+            if self._is_game_over():
+                self._set_game_over("terminal_tile_or_reshuffle_limit")
+            return True
+        if fallback_tile_id is not None:
+            self._dynamic_values[fallback_tile_id] = terminal_value
+            if self._is_game_over():
+                self._set_game_over("terminal_tile_or_reshuffle_limit")
+            return True
+        return False
+
+    def force_reshuffle_limit_game_over(self) -> None:
+        """
+        Test helper: force draw pile exhaustion at reshuffle limit.
+        """
+        self.deck_service.force_reshuffle_limit_reached()
+        if self._is_game_over():
+            self._set_game_over("draw_unavailable_or_max_reshuffles")
 
     @property
     def draw_pile_count(self) -> int:

@@ -38,24 +38,25 @@ export function PremiumLandingPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950 px-6 py-12 text-slate-100 sm:px-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.2),transparent_40%),radial-gradient(circle_at_80%_20%,rgba(168,85,247,0.16),transparent_35%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-50">
+        <div className="absolute inset-x-0 top-0 h-48 bg-slate-900" />
+        <div className="absolute -left-20 top-28 h-40 w-40 rounded-full bg-slate-800/70 blur-3xl" />
+        <div className="absolute right-0 top-8 h-52 w-52 rounded-full bg-cyan-950/70 blur-3xl" />
+      </div>
 
       <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-10">
         <motion.section
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur sm:p-12"
+          className="rounded-3xl border border-slate-700 bg-slate-900/90 p-8 shadow-2xl shadow-black/30 sm:p-12"
         >
-          <p className="text-sm uppercase tracking-[0.24em] text-sky-300">Hand Betting Game</p>
+          <p className="text-sm uppercase tracking-[0.24em] text-cyan-200">Hand Betting Game</p>
           <h1 className="mt-4 max-w-3xl text-4xl font-semibold leading-tight sm:text-6xl">
             Premium Mahjong-Inspired
-            <span className="bg-gradient-to-r from-sky-300 to-violet-300 bg-clip-text text-transparent">
-              {" "}
-              Betting Experience
-            </span>
+            <span className="text-cyan-200"> Betting Experience</span>
           </h1>
-          <p className="mt-6 max-w-2xl text-base text-slate-300 sm:text-lg">
+          <p className="mt-6 max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
             Play strategic high/low rounds, track dynamic tile values, and climb the live
             leaderboard in a polished real-time interface.
           </p>
@@ -63,7 +64,7 @@ export function PremiumLandingPage() {
           <div className="mt-8 flex flex-wrap gap-4">
             <Link
               href="/game"
-              className="group inline-flex items-center rounded-xl bg-gradient-to-r from-sky-400 to-violet-500 px-6 py-3 text-sm font-semibold text-slate-950 transition duration-300 hover:scale-[1.02] hover:shadow-[0_0_28px_rgba(56,189,248,0.45)]"
+              className="group inline-flex items-center rounded-xl border border-cyan-300 bg-cyan-200 px-6 py-3 text-sm font-semibold text-slate-950 transition duration-200 hover:bg-cyan-100"
             >
               New Game
               <span className="ml-2 transition-transform duration-300 group-hover:translate-x-1">
@@ -77,7 +78,7 @@ export function PremiumLandingPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.12 }}
-          className="rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur"
+          className="rounded-3xl border border-slate-700 bg-slate-900/90 p-8 shadow-2xl shadow-black/30"
         >
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-white sm:text-2xl">Leaderboard · Top 5</h2>
@@ -92,15 +93,15 @@ export function PremiumLandingPage() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.35, delay: 0.08 * index }}
-                  className="group flex items-center justify-between rounded-xl border border-white/10 bg-slate-900/60 px-4 py-3 transition hover:border-sky-300/40 hover:bg-slate-800/70"
+                  className="group flex items-center justify-between rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 transition hover:border-cyan-300/40 hover:bg-slate-900"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-slate-200">
+                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-800 text-xs font-semibold text-slate-200">
                       {index + 1}
                     </span>
                     <span className="text-sm text-slate-200">Player Score</span>
                   </div>
-                  <span className="text-base font-semibold text-sky-300">{entry.score}</span>
+                  <span className="text-base font-semibold text-cyan-200">{entry.score}</span>
                 </motion.div>
               ))
             ) : (

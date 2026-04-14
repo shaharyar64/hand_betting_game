@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8001";
 
 export type BetChoice = "higher" | "lower";
 
@@ -92,6 +92,14 @@ export type LeaderboardResponse = {
   };
 };
 
+export type DebugGameOverMode = "terminal-tile" | "reshuffle-limit";
+
+export type DebugGameOverResponse = {
+  ok: boolean;
+  message: string;
+  data: NewGameResponse["data"];
+};
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -123,4 +131,6 @@ export const gameApi = {
   placeBet: (choice: BetChoice) =>
     request<BetResponse>(`/bet/${choice}`, { method: "POST" }),
   getLeaderboard: () => request<LeaderboardResponse>("/leaderboard"),
+  forceGameOver: (mode: DebugGameOverMode) =>
+    request<DebugGameOverResponse>(`/debug/game-over/${mode}`, { method: "POST" }),
 };

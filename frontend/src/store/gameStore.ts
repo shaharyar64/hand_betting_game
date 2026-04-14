@@ -2,6 +2,7 @@ import { create } from "zustand";
 
 import {
   type BetChoice,
+  type DebugGameOverMode,
   gameApi,
   type HandPayload,
   type RoundHistoryPayload,
@@ -35,6 +36,7 @@ type GameStore = {
   drawAnimationKey: number;
   startNewGame: () => Promise<void>;
   placeBet: (choice: BetChoice) => Promise<void>;
+  forceGameOver: (mode: DebugGameOverMode) => Promise<void>;
   loadLeaderboard: () => Promise<void>;
   clearError: () => void;
 };
@@ -48,6 +50,19 @@ const EMPTY_HAND: HandPayload = {
 
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
+}
+
+function toRoundHistory(history: RoundHistoryPayload[]): RoundHistoryItem[] {
+  return history.map((item, index) => ({
+    id: history.length - index,
+    bet: item.bet,
+    previousTotal: item.previous_total,
+    nextTotal: item.next_total,
+    outcome: item.outcome,
+    scoreDelta: item.score_delta,
+    scoreAfter: item.score_after_round,
+    tiles: item.tiles,
+  }));
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -89,16 +104,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         drawPileCount: response.data.deck.draw_pile_count,
         discardPileCount: response.data.deck.discard_pile_count,
         reshuffleCount: response.data.deck.reshuffle_count,
-        history: response.data.history.map((round, index) => ({
-          id: response.data.history.length - index,
-          bet: round.bet,
-          previousTotal: round.previous_total,
-          nextTotal: round.next_total,
-          outcome: round.outcome,
-          scoreDelta: round.score_delta,
-          scoreAfter: round.score_after_round,
-          tiles: round.tiles,
-        })),
+        history: toRoundHistory(response.data.history),
         drawAnimationKey: state.drawAnimationKey + 1,
       }));
       await get().loadLeaderboard();
@@ -124,21 +130,36 @@ export const useGameStore = create<GameStore>((set, get) => ({
         discardPileCount: response.data.deck.discard_pile_count,
         reshuffleCount: response.data.deck.reshuffle_count,
         drawAnimationKey: state.drawAnimationKey + 1,
-        history: response.data.history.map((item, index) => ({
-          id: response.data.history.length - index,
-          bet: item.bet,
-          previousTotal: item.previous_total,
-          nextTotal: item.next_total,
-          outcome: item.outcome,
-          scoreDelta: item.score_delta,
-          scoreAfter: item.score_after_round,
-          tiles: item.tiles,
-        })),
+        history: toRoundHistory(response.data.history),
       }));
 
       await get().loadLeaderboard();
     } catch (error) {
       set({ error: errorMessage(error, "Failed to place bet.") });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  forceGameOver: async (mode: DebugGameOverMode) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await gameApi.forceGameOver(mode);
+      set((state) => ({
+        score: response.data.score,
+        gameStatus: response.data.game_status,
+        gameOverReason: response.data.game_over_reason,
+        hand: response.data.hand,
+        tiles: response.data.tiles,
+        drawPileCount: response.data.deck.draw_pile_count,
+        discardPileCount: response.data.deck.discard_pile_count,
+        reshuffleCount: response.data.deck.reshuffle_count,
+        history: toRoundHistory(response.data.history),
+        drawAnimationKey: state.drawAnimationKey + 1,
+      }));
+      await get().loadLeaderboard();
+    } catch (error) {
+      set({ error: errorMessage(error, "Failed to force game-over mode.") });
     } finally {
       set({ loading: false });
     }

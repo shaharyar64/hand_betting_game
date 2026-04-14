@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from dataclasses import asdict
 from typing import cast
-
 from fastapi import APIRouter, HTTPException
 
-from ..hand_betting_engine import BetChoice, HandBettingGameEngine
+from ..hand_betting_engine import BetChoice, HandBettingGameEngine, Tile
 from ..leaderboard import LeaderboardService
 
 router = APIRouter(prefix="", tags=["game"])
@@ -41,6 +40,22 @@ def _current_hand_payload(engine: HandBettingGameEngine) -> dict[str, int | str 
     }
 
 
+def _serialize_tile(tile: Tile) -> dict[str, str | int]:
+    return {
+        "id": str(tile.id),
+        "type": tile.type,
+        "value": tile.value,
+        "label": tile.label,
+    }
+
+
+def _current_hand_tiles(engine: HandBettingGameEngine) -> list[dict[str, str | int]]:
+    hand = engine.state.current_hand
+    if hand is None:
+        return []
+    return [_serialize_tile(hand.anchor_tile), _serialize_tile(hand.active_tile)]
+
+
 @router.post("/new-game")
 async def new_game() -> dict[str, object]:
     engine = store.reset()
@@ -51,6 +66,7 @@ async def new_game() -> dict[str, object]:
             "score": engine.state.score,
             "game_status": engine.state.game_status,
             "hand": _current_hand_payload(engine),
+            "tiles": _current_hand_tiles(engine),
             "history_count": len(engine.state.history),
         },
     }
@@ -68,6 +84,7 @@ async def get_hand() -> dict[str, object]:
             "game_status": store.engine.state.game_status,
             "bet": store.engine.state.bet,
             "hand": _current_hand_payload(store.engine),
+            "tiles": _current_hand_tiles(store.engine),
             "history_count": len(store.engine.state.history),
         },
     }
@@ -96,6 +113,7 @@ async def place_bet(choice: str) -> dict[str, object]:
             "game_status": state.game_status,
             "game_over_reason": state.game_over_reason,
             "history_count": len(state.history),
+            "result": None if last_round is None else last_round.outcome == "win",
             "last_round": None
             if last_round is None
             else {

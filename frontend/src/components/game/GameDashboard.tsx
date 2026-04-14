@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { useEffect } from "react";
 
 import { useGameStore } from "@/store/gameStore";
@@ -32,14 +32,14 @@ export function GameDashboard() {
   const tileResultState =
     gameStatus === "awaiting_bet" || gameStatus === "resolved" ? latestOutcome : null;
 
-  const pageVariants = {
+  const pageVariants: Variants = {
     hidden: { opacity: 0, y: 14 },
     show: {
       opacity: 1,
       y: 0,
       transition: {
         duration: 0.2,
-        ease: "easeOut",
+        ease: "easeOut" as const,
       },
     },
   };

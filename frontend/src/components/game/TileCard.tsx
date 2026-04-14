@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, type Variants } from "framer-motion";
 
 type TileCardProps = {
   label: string;
@@ -9,14 +9,14 @@ type TileCardProps = {
   accentClassName?: string;
 };
 
-const tileVariants = {
+const tileVariants: Variants = {
   initial: { opacity: 0, y: 14, scale: 0.94 },
   enter: {
     opacity: 1,
     y: 0,
     scale: 1,
     transition: {
-      type: "spring",
+      type: "spring" as const,
       stiffness: 380,
       damping: 24,
       mass: 0.7,
@@ -33,7 +33,7 @@ const tileVariants = {
 const hoverAnimation = {
   y: -4,
   boxShadow: "0 16px 28px rgba(0,0,0,0.28)",
-  transition: { type: "spring", stiffness: 450, damping: 26, mass: 0.65 },
+  transition: { type: "spring" as const, stiffness: 450, damping: 26, mass: 0.65 },
 };
 
 export function TileCard({

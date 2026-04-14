@@ -1,44 +1,28 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from dataclasses import asdict
 from typing import cast
 
 from fastapi import APIRouter, HTTPException
 
 from ..hand_betting_engine import BetChoice, HandBettingGameEngine
+from ..leaderboard import LeaderboardService
 
 router = APIRouter(prefix="", tags=["game"])
-
-
-@dataclass(slots=True)
-class LeaderboardEntry:
-    score: int
-    rounds_played: int
-    finished_at: str
 
 
 class GameSessionStore:
     def __init__(self) -> None:
         self.engine = HandBettingGameEngine()
-        self.leaderboard: list[LeaderboardEntry] = []
-        self.max_leaderboard_size = 5
+        self.leaderboard = LeaderboardService(max_entries=5)
 
     def reset(self) -> HandBettingGameEngine:
         self.engine = HandBettingGameEngine()
         self.engine.start_hand()
         return self.engine
 
-    def add_result(self, score: int, rounds_played: int) -> None:
-        self.leaderboard.append(
-            LeaderboardEntry(
-                score=score,
-                rounds_played=rounds_played,
-                finished_at=datetime.now(timezone.utc).isoformat(),
-            )
-        )
-        self.leaderboard.sort(key=lambda item: item.score, reverse=True)
-        self.leaderboard = self.leaderboard[: self.max_leaderboard_size]
+    def add_result(self, score: int) -> None:
+        self.leaderboard.add_score(score)
 
 
 store = GameSessionStore()
@@ -103,7 +87,7 @@ async def place_bet(choice: str) -> dict[str, object]:
 
     last_round = state.history[-1] if state.history else None
     if state.game_status == "game_over":
-        store.add_result(score=state.score, rounds_played=len(state.history))
+        store.add_result(score=state.score)
 
     return {
         "ok": True,
@@ -131,6 +115,6 @@ async def get_leaderboard() -> dict[str, object]:
     return {
         "ok": True,
         "data": {
-            "top": [asdict(item) for item in store.leaderboard],
+            "top": [asdict(item) for item in store.leaderboard.get_top_scores()],
         },
     }

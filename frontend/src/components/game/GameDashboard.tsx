@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, type Variants } from "framer-motion";
+import Link from "next/link";
 import { useEffect } from "react";
 
 import { useGameStore } from "@/store/gameStore";
@@ -19,8 +20,13 @@ export function GameDashboard() {
   const score = useGameStore((state) => state.score);
   const gameStatus = useGameStore((state) => state.gameStatus);
   const hand = useGameStore((state) => state.hand);
+  const tiles = useGameStore((state) => state.tiles);
   const history = useGameStore((state) => state.history);
   const leaderboard = useGameStore((state) => state.leaderboard);
+  const gameOverReason = useGameStore((state) => state.gameOverReason);
+  const drawPileCount = useGameStore((state) => state.drawPileCount);
+  const discardPileCount = useGameStore((state) => state.discardPileCount);
+  const reshuffleCount = useGameStore((state) => state.reshuffleCount);
   const loading = useGameStore((state) => state.loading);
   const error = useGameStore((state) => state.error);
   const drawAnimationKey = useGameStore((state) => state.drawAnimationKey);
@@ -65,13 +71,24 @@ export function GameDashboard() {
         <p className="mt-2 text-sm text-slate-300">
           Place your bet, draw a new tile, and outscore the table.
         </p>
+        <div className="mt-4">
+          <Link
+            href="/"
+            className="inline-flex items-center rounded-lg border border-white/20 px-3 py-2 text-xs font-medium text-white transition hover:bg-white/10"
+          >
+            Exit to Landing
+          </Link>
+        </div>
       </motion.header>
 
-      <section className="grid gap-4 sm:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-4 lg:grid-cols-7">
         <StatCard label="Score" value={score} />
         <StatCard label="Current Hand Value" value={currentHandValue} />
         <StatCard label="Game Status" value={gameStatus} />
         <StatCard label="Hands Played" value={history.length} />
+        <StatCard label="Draw Pile" value={drawPileCount} />
+        <StatCard label="Discard Pile" value={discardPileCount} />
+        <StatCard label="Reshuffles" value={`${reshuffleCount}/3`} />
       </section>
 
       <motion.section
@@ -91,14 +108,14 @@ export function GameDashboard() {
             className="mt-4 grid gap-4 md:grid-cols-2"
           >
             <TileCard
-              label={hand.anchor_label ?? "Anchor"}
-              value={hand.anchor_value}
+              label={tiles[0]?.label ?? hand.anchor_label ?? "Anchor"}
+              value={tiles[0]?.value ?? hand.anchor_value}
               resultState={tileResultState}
               accentClassName="ring-1 ring-white/10"
             />
             <TileCard
-              label={hand.active_label ?? "Active"}
-              value={hand.active_value}
+              label={tiles[1]?.label ?? hand.active_label ?? "Active"}
+              value={tiles[1]?.value ?? hand.active_value}
               resultState={tileResultState}
               accentClassName="ring-1 ring-white/10"
             />
@@ -158,14 +175,31 @@ export function GameDashboard() {
                     transition={{ type: "spring", stiffness: 360, damping: 25 }}
                     style={{ marginTop: index === 0 ? 0 : -2 }}
                     className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2 text-slate-300"
-                >
-                  <p className="font-medium text-slate-200">
-                    Hand #{round.id}: {round.bet} ({round.previousTotal} → {round.nextTotal})
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    {round.outcome.toUpperCase()} | Delta: {round.scoreDelta} | Score:{" "}
-                    {round.scoreAfter}
-                  </p>
+                  >
+                    <p className="font-medium text-slate-200">
+                      Hand #{round.id}: {round.bet} ({round.previousTotal} → {round.nextTotal})
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {round.outcome.toUpperCase()} | Delta: {round.scoreDelta} | Score:{" "}
+                      {round.scoreAfter}
+                    </p>
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      <TileCard
+                        label={round.tiles.anchor.label}
+                        value={round.tiles.anchor.value}
+                        accentClassName="scale-[0.94]"
+                      />
+                      <TileCard
+                        label={round.tiles.active.label}
+                        value={round.tiles.active.value}
+                        accentClassName="scale-[0.94]"
+                      />
+                      <TileCard
+                        label={round.tiles.drawn.label}
+                        value={round.tiles.drawn.value}
+                        accentClassName="scale-[0.94]"
+                      />
+                    </div>
                   </motion.div>
                 ))}
               </AnimatePresence>
@@ -196,6 +230,41 @@ export function GameDashboard() {
         <p className="rounded-lg border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
           {error}
         </p>
+      ) : null}
+
+      {gameStatus === "game_over" ? (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="rounded-2xl border border-amber-300/30 bg-amber-500/10 p-6"
+        >
+          <h3 className="text-xl font-semibold text-amber-200">Game Over</h3>
+          <p className="mt-2 text-sm text-amber-100">
+            Final Score: <span className="font-semibold">{score}</span>
+          </p>
+          <p className="mt-1 text-xs text-amber-200/90">
+            Reason: {gameOverReason ?? "terminal condition reached"}
+          </p>
+          <div className="mt-4 flex gap-3">
+            <motion.button
+              whileHover={{ filter: "brightness(1.06)" }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 520, damping: 28, mass: 0.6 }}
+              type="button"
+              onClick={() => void startNewGame()}
+              className="rounded-lg bg-amber-300 px-4 py-2 text-sm font-semibold text-slate-900"
+            >
+              Play Again
+            </motion.button>
+            <Link
+              href="/"
+              className="inline-flex items-center rounded-lg border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10"
+            >
+              Back to Landing
+            </Link>
+          </div>
+        </motion.div>
       ) : null}
     </motion.div>
   );

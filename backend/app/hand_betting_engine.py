@@ -25,10 +25,21 @@ class CurrentHand:
 
 
 @dataclass(slots=True)
+class TileSnapshot:
+    id: UUID
+    type: str
+    label: str
+    value: int
+
+
+@dataclass(slots=True)
 class HandHistoryEntry:
     anchor_tile_id: UUID
     active_tile_id: UUID
     drawn_tile_id: UUID
+    anchor_tile: TileSnapshot
+    active_tile: TileSnapshot
+    drawn_tile: TileSnapshot
     bet: BetChoice
     previous_total: int
     next_total: int
@@ -122,6 +133,24 @@ class HandBettingGameEngine:
                 anchor_tile_id=anchor.id,
                 active_tile_id=active.id,
                 drawn_tile_id=drawn.id,
+                anchor_tile=TileSnapshot(
+                    id=anchor.id,
+                    type=anchor.type,
+                    label=anchor.label,
+                    value=self._tile_value(anchor),
+                ),
+                active_tile=TileSnapshot(
+                    id=active.id,
+                    type=active.type,
+                    label=active.label,
+                    value=self._tile_value(active),
+                ),
+                drawn_tile=TileSnapshot(
+                    id=drawn.id,
+                    type=drawn.type,
+                    label=drawn.label,
+                    value=self._tile_value(drawn),
+                ),
                 bet=self.state.bet,
                 previous_total=previous_total,
                 next_total=next_total,
@@ -178,3 +207,15 @@ class HandBettingGameEngine:
     def _ensure_not_game_over(self) -> None:
         if self.state.game_status == "game_over":
             raise RuntimeError("Game is over. Create a new engine instance for a new game.")
+
+    @property
+    def draw_pile_count(self) -> int:
+        return len(self.deck_service.draw_pile)
+
+    @property
+    def discard_pile_count(self) -> int:
+        return len(self.deck_service.discard_pile)
+
+    @property
+    def reshuffle_count(self) -> int:
+        return self.deck_service.reshuffle_count

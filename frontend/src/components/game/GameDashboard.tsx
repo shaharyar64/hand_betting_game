@@ -1,10 +1,9 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useCallback, useEffect, useReducer } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect } from "react";
 
-import { type BetChoice, gameApi } from "@/services/api";
-import { gameReducer, initialGameState } from "@/store/gameStore";
+import { useGameStore } from "@/store/gameStore";
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
@@ -15,64 +14,44 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
   );
 }
 
-export function GameDashboard() {
-  const [state, dispatch] = useReducer(gameReducer, initialGameState);
-
-  const loadLeaderboard = useCallback(async () => {
-    const leaderboard = await gameApi.getLeaderboard();
-    dispatch({ type: "set_leaderboard", payload: leaderboard.data.top });
-  }, []);
-
-  const startNewGame = useCallback(async () => {
-    dispatch({ type: "set_loading", payload: true });
-    dispatch({ type: "set_error", payload: null });
-    try {
-      const response = await gameApi.newGame();
-      dispatch({
-        type: "set_game",
-        payload: {
-          score: response.data.score,
-          gameStatus: response.data.game_status,
-          hand: response.data.hand,
-          historyCount: response.data.history_count,
-        },
-      });
-      dispatch({ type: "set_last_round", payload: null });
-      await loadLeaderboard();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to start game.";
-      dispatch({ type: "set_error", payload: message });
-    } finally {
-      dispatch({ type: "set_loading", payload: false });
-    }
-  }, [loadLeaderboard]);
-
-  const placeBet = useCallback(
-    async (choice: BetChoice) => {
-      dispatch({ type: "set_loading", payload: true });
-      dispatch({ type: "set_error", payload: null });
-      try {
-        const response = await gameApi.placeBet(choice);
-        dispatch({
-          type: "set_game",
-          payload: {
-            score: response.data.score,
-            gameStatus: response.data.game_status,
-            hand: response.data.next_hand,
-            historyCount: response.data.history_count,
-          },
-        });
-        dispatch({ type: "set_last_round", payload: response.data.last_round });
-        await loadLeaderboard();
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to place bet.";
-        dispatch({ type: "set_error", payload: message });
-      } finally {
-        dispatch({ type: "set_loading", payload: false });
-      }
-    },
-    [loadLeaderboard],
+function TileCard({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number | null;
+  accent: string;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 18, scale: 0.96 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -12, scale: 0.98 }}
+      transition={{ duration: 0.32 }}
+      className={`group relative rounded-2xl border border-white/10 bg-slate-900/80 p-5 shadow-lg transition hover:-translate-y-0.5 ${accent}`}
+    >
+      <div className="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-sky-400/90 to-violet-400/90" />
+      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Tile</p>
+      <p className="mt-3 text-lg font-semibold text-white">{label}</p>
+      <p className="mt-2 text-3xl font-bold text-sky-300">{value ?? "-"}</p>
+    </motion.div>
   );
+}
+
+export function GameDashboard() {
+  const score = useGameStore((state) => state.score);
+  const gameStatus = useGameStore((state) => state.gameStatus);
+  const hand = useGameStore((state) => state.hand);
+  const history = useGameStore((state) => state.history);
+  const leaderboard = useGameStore((state) => state.leaderboard);
+  const loading = useGameStore((state) => state.loading);
+  const error = useGameStore((state) => state.error);
+  const drawAnimationKey = useGameStore((state) => state.drawAnimationKey);
+  const startNewGame = useGameStore((state) => state.startNewGame);
+  const placeBet = useGameStore((state) => state.placeBet);
+
+  const currentHandValue = (hand.anchor_value ?? 0) + (hand.active_value ?? 0);
 
   useEffect(() => {
     void startNewGame();
@@ -87,14 +66,15 @@ export function GameDashboard() {
       >
         <h1 className="text-3xl font-bold tracking-tight text-white">Hand Betting Game</h1>
         <p className="mt-2 text-sm text-slate-300">
-          Next.js App Router + Tailwind CSS + Framer Motion starter.
+          Place your bet, draw a new tile, and outscore the table.
         </p>
       </motion.header>
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Score" value={state.score} />
-        <StatCard label="Game Status" value={state.gameStatus} />
-        <StatCard label="Hands Played" value={state.historyCount} />
+      <section className="grid gap-4 sm:grid-cols-4">
+        <StatCard label="Score" value={score} />
+        <StatCard label="Current Hand Value" value={currentHandValue} />
+        <StatCard label="Game Status" value={gameStatus} />
+        <StatCard label="Hands Played" value={history.length} />
       </section>
 
       <motion.section
@@ -102,19 +82,34 @@ export function GameDashboard() {
         animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl border border-white/10 bg-slate-900/60 p-6"
       >
-        <h2 className="text-lg font-semibold text-white">Current Hand</h2>
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <StatCard label="Anchor Tile" value={state.hand.anchor_label ?? "-"} />
-          <StatCard label="Anchor Value" value={state.hand.anchor_value ?? "-"} />
-          <StatCard label="Active Tile" value={state.hand.active_label ?? "-"} />
-          <StatCard label="Active Value" value={state.hand.active_value ?? "-"} />
-        </div>
+        <h2 className="text-lg font-semibold text-white">Tiles</h2>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={drawAnimationKey}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="mt-4 grid gap-4 md:grid-cols-2"
+          >
+            <TileCard
+              label={hand.anchor_label ?? "Anchor"}
+              value={hand.anchor_value}
+              accent="hover:shadow-sky-500/15"
+            />
+            <TileCard
+              label={hand.active_label ?? "Active"}
+              value={hand.active_value}
+              accent="hover:shadow-violet-500/15"
+            />
+          </motion.div>
+        </AnimatePresence>
 
         <div className="mt-6 flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => void placeBet("higher")}
-            disabled={state.loading}
+            disabled={loading}
             className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Bet Higher
@@ -122,7 +117,7 @@ export function GameDashboard() {
           <button
             type="button"
             onClick={() => void placeBet("lower")}
-            disabled={state.loading}
+            disabled={loading}
             className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-rose-400 disabled:cursor-not-allowed disabled:opacity-60"
           >
             Bet Lower
@@ -130,7 +125,7 @@ export function GameDashboard() {
           <button
             type="button"
             onClick={() => void startNewGame()}
-            disabled={state.loading}
+            disabled={loading}
             className="rounded-lg border border-white/20 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-60"
           >
             New Game
@@ -140,26 +135,34 @@ export function GameDashboard() {
 
       <section className="grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-6">
-          <h3 className="text-base font-semibold text-white">Last Round</h3>
-          {state.lastRound ? (
-            <div className="mt-3 space-y-1 text-sm text-slate-300">
-              <p>Bet: {state.lastRound.bet}</p>
-              <p>Totals: {state.lastRound.previous_total} → {state.lastRound.next_total}</p>
-              <p>
-                Outcome: <span className="font-semibold">{state.lastRound.outcome}</span> (
-                {state.lastRound.score_delta})
-              </p>
+          <h3 className="text-base font-semibold text-white">History</h3>
+          {history.length > 0 ? (
+            <div className="mt-3 max-h-72 space-y-2 overflow-auto pr-1 text-sm text-slate-300">
+              {history.map((round) => (
+                <div
+                  key={round.id}
+                  className="rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2"
+                >
+                  <p className="font-medium text-slate-200">
+                    Hand #{round.id}: {round.bet} ({round.previousTotal} → {round.nextTotal})
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {round.outcome.toUpperCase()} | Delta: {round.scoreDelta} | Score:{" "}
+                    {round.scoreAfter}
+                  </p>
+                </div>
+              ))}
             </div>
           ) : (
-            <p className="mt-3 text-sm text-slate-400">No rounds resolved yet.</p>
+            <p className="mt-3 text-sm text-slate-400">No resolved hands yet.</p>
           )}
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-6">
           <h3 className="text-base font-semibold text-white">Leaderboard (Top 5)</h3>
           <ol className="mt-3 space-y-2 text-sm text-slate-300">
-            {state.leaderboard.length > 0 ? (
-              state.leaderboard.map((entry, index) => (
+            {leaderboard.length > 0 ? (
+              leaderboard.map((entry, index) => (
                 <li key={`${entry.created_at}-${index}`} className="flex items-center justify-between">
                   <span>#{index + 1}</span>
                   <span className="font-semibold">{entry.score}</span>
@@ -172,9 +175,9 @@ export function GameDashboard() {
         </div>
       </section>
 
-      {state.error ? (
+      {error ? (
         <p className="rounded-lg border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          {state.error}
+          {error}
         </p>
       ) : null}
     </div>

@@ -1,69 +1,118 @@
-import type { BetChoice, HandPayload } from "@/services/api";
+import { create } from "zustand";
 
-export type LastRound = {
+import { type BetChoice, gameApi, type HandPayload } from "@/services/api";
+
+type RoundHistoryItem = {
+  id: number;
   bet: BetChoice;
-  previous_total: number;
-  next_total: number;
+  previousTotal: number;
+  nextTotal: number;
   outcome: "win" | "lose";
-  score_delta: number;
+  scoreDelta: number;
+  scoreAfter: number;
 };
 
-export type GameViewState = {
+type GameStore = {
   score: number;
   gameStatus: string;
   hand: HandPayload;
-  historyCount: number;
+  history: RoundHistoryItem[];
   leaderboard: Array<{ score: number; created_at: string }>;
   loading: boolean;
   error: string | null;
-  lastRound: LastRound | null;
+  drawAnimationKey: number;
+  startNewGame: () => Promise<void>;
+  placeBet: (choice: BetChoice) => Promise<void>;
+  loadLeaderboard: () => Promise<void>;
+  clearError: () => void;
 };
 
-export type GameAction =
-  | { type: "set_loading"; payload: boolean }
-  | { type: "set_error"; payload: string | null }
-  | {
-      type: "set_game";
-      payload: Pick<GameViewState, "score" | "gameStatus" | "hand" | "historyCount">;
-    }
-  | { type: "set_leaderboard"; payload: GameViewState["leaderboard"] }
-  | { type: "set_last_round"; payload: LastRound | null };
+const EMPTY_HAND: HandPayload = {
+  anchor_label: null,
+  anchor_value: null,
+  active_label: null,
+  active_value: null,
+};
 
-export const initialGameState: GameViewState = {
+function errorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
+}
+
+export const useGameStore = create<GameStore>((set, get) => ({
   score: 0,
   gameStatus: "idle",
-  hand: {
-    anchor_label: null,
-    anchor_value: null,
-    active_label: null,
-    active_value: null,
-  },
-  historyCount: 0,
+  hand: EMPTY_HAND,
+  history: [],
   leaderboard: [],
   loading: false,
   error: null,
-  lastRound: null,
-};
+  drawAnimationKey: 0,
 
-export function gameReducer(state: GameViewState, action: GameAction): GameViewState {
-  switch (action.type) {
-    case "set_loading":
-      return { ...state, loading: action.payload };
-    case "set_error":
-      return { ...state, error: action.payload };
-    case "set_game":
-      return {
-        ...state,
-        score: action.payload.score,
-        gameStatus: action.payload.gameStatus,
-        hand: action.payload.hand,
-        historyCount: action.payload.historyCount,
-      };
-    case "set_leaderboard":
-      return { ...state, leaderboard: action.payload };
-    case "set_last_round":
-      return { ...state, lastRound: action.payload };
-    default:
-      return state;
-  }
-}
+  clearError: () => set({ error: null }),
+
+  loadLeaderboard: async () => {
+    try {
+      const response = await gameApi.getLeaderboard();
+      set({ leaderboard: response.data.top });
+    } catch (error) {
+      set({ error: errorMessage(error, "Failed to load leaderboard.") });
+    }
+  },
+
+  startNewGame: async () => {
+    set({ loading: true, error: null });
+    try {
+      const response = await gameApi.newGame();
+      set((state) => ({
+        score: response.data.score,
+        gameStatus: response.data.game_status,
+        hand: response.data.hand,
+        history: [],
+        drawAnimationKey: state.drawAnimationKey + 1,
+      }));
+      await get().loadLeaderboard();
+    } catch (error) {
+      set({ error: errorMessage(error, "Failed to start game.") });
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  placeBet: async (choice: BetChoice) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await gameApi.placeBet(choice);
+      const round = response.data.last_round;
+
+      set((state) => ({
+        score: response.data.score,
+        gameStatus: response.data.game_status,
+        hand: response.data.next_hand,
+        drawAnimationKey: state.drawAnimationKey + 1,
+        history:
+          round === null
+            ? state.history
+            : [
+                {
+                  id: state.history.length + 1,
+                  bet: round.bet,
+                  previousTotal: round.previous_total,
+                  nextTotal: round.next_total,
+                  outcome: round.outcome,
+                  scoreDelta: round.score_delta,
+                  scoreAfter: response.data.score,
+                },
+                ...state.history,
+              ],
+      }));
+
+      await get().loadLeaderboard();
+    } catch (error) {
+      set({ error: errorMessage(error, "Failed to place bet.") });
+    } finally {
+      set({ loading: false });
+    }
+  },
+}));
+
+export type { RoundHistoryItem };

@@ -19,6 +19,7 @@ class TileFactoryConfig:
     copies_per_dragon: int = DEFAULT_COPIES_PER_TILE
     wind_value: int = WIND_VALUE
     dragon_value: int = DRAGON_VALUE
+    target_deck_size: int | None = 20
 
 
 class TileFactory:
@@ -35,10 +36,39 @@ class TileFactory:
         return Tile(type="dragon", value=self.config.dragon_value, label=color)
 
     def create_full_set(self) -> list[Tile]:
+        if self.config.target_deck_size is not None:
+            return self._create_compact_set(self.config.target_deck_size)
+
         tiles: list[Tile] = []
         tiles.extend(self._create_number_tiles())
         tiles.extend(self._create_wind_tiles())
         tiles.extend(self._create_dragon_tiles())
+        return tiles
+
+    def _create_compact_set(self, target_size: int) -> list[Tile]:
+        if target_size <= 0:
+            return []
+
+        tiles: list[Tile] = []
+
+        # Keep all categories present for gameplay/demo fidelity.
+        for number in self.config.number_range:
+            tiles.append(self.create_number_tile(number))
+        for label in self.config.wind_labels:
+            tiles.append(self.create_wind_tile(label))
+        for label in self.config.dragon_labels:
+            tiles.append(self.create_dragon_tile(label))
+
+        if len(tiles) >= target_size:
+            return tiles[:target_size]
+
+        number_values = list(self.config.number_range)
+        fill_index = 0
+        while len(tiles) < target_size and number_values:
+            value = number_values[fill_index % len(number_values)]
+            tiles.append(self.create_number_tile(value))
+            fill_index += 1
+
         return tiles
 
     def _create_number_tiles(self) -> list[Tile]:

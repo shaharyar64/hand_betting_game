@@ -2,6 +2,8 @@
 
 Web-based Mahjong hand betting game built for extensibility, polished gameplay, and clean domain separation.
 
+> Note: Current default deck mode is set to a compact 20-tile configuration to speed up recording/demo flow.
+
 ## Tech Stack
 
 - Backend: FastAPI (Python)
@@ -56,7 +58,7 @@ npm run dev:backend
 Health check:
 
 ```bash
-curl http://127.0.0.1:8000/health
+curl http://127.0.0.1:8001/health
 ```
 
 ### 3) Run frontend
@@ -73,6 +75,11 @@ Frontend default URL: [http://localhost:3000](http://localhost:3000)
 - The backend is implemented as a stateful engine with service boundaries to keep future feature work isolated.
 - Frontend API and state are strongly typed to reduce integration drift during extension work.
 - UI components are split by screen domain (`landing`, `game`) to keep design iterations localized.
+
+## Game Documentation
+
+- Detailed mechanics and calculation guide: `docs/GAME_MECHANICS.md`
+- Deck sizing and configuration details: see sections `2`, `6`, and `12` in `docs/GAME_MECHANICS.md`
 
 ## AI Usage Note
 

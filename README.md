@@ -78,8 +78,8 @@ Frontend default URL: [http://localhost:3000](http://localhost:3000)
 
 ## Game Documentation
 
-- Detailed mechanics and calculation guide: `docs/GAME_MECHANICS.md`
-- Deck sizing and configuration details: see sections `2`, `6`, and `12` in `docs/GAME_MECHANICS.md`
+- Detailed mechanics and calculation guide: `docs/Implementation_Documentation.md`
+- Deck sizing and configuration details: see sections `2`, `6`, and `12` in `docs/Implementation_Documentation.md`
 
 ## AI Usage Note
 

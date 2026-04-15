@@ -14,11 +14,51 @@ const GAME_OVER_REASON_LABELS: Record<string, string> = {
     "No more tiles can be drawn because the reshuffle limit has been reached.",
 };
 
+const GAME_STATUS_LABELS: Record<string, string> = {
+  idle: "Idle",
+  awaiting_bet: "Awaiting",
+  resolved: "Resolved",
+  game_over: "Game over",
+};
+
+const GAME_STATUS_BADGE_CLASS: Record<string, string> = {
+  idle: "border border-slate-600 bg-slate-800 text-slate-200",
+  awaiting_bet: "border border-cyan-600/50 bg-cyan-950/80 text-cyan-100",
+  resolved: "border border-amber-600/40 bg-amber-950/70 text-amber-100",
+  game_over: "border border-rose-600/40 bg-rose-950/70 text-rose-100",
+};
+
+function GameStatusStatCard({ rawStatus, displayLabel }: { rawStatus: string; displayLabel: string }) {
+  const badgeClass =
+    GAME_STATUS_BADGE_CLASS[rawStatus] ?? "border border-slate-600 bg-slate-800 text-slate-200";
+
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
+      <p className="text-xs uppercase tracking-wide text-slate-400">Game Status</p>
+      <div className="mt-2 flex min-h-[2rem] items-center">
+        <span
+          className={`inline-flex max-w-full rounded-full px-3 py-1 text-sm font-semibold tracking-tight ${badgeClass}`}
+        >
+          {displayLabel}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function StatCard({ label, value }: { label: string; value: string | number }) {
+  const isLongTextValue = typeof value === "string" && value.length > 10;
+
   return (
     <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
       <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-2 text-xl font-semibold text-slate-100">{value}</p>
+      <p
+        className={`mt-2 font-semibold text-slate-100 ${
+          isLongTextValue ? "break-words text-lg leading-tight" : "text-xl"
+        }`}
+      >
+        {value}
+      </p>
     </div>
   );
 }
@@ -48,6 +88,7 @@ export function GameDashboard() {
   const gameOverSummary = gameOverReason
     ? (GAME_OVER_REASON_LABELS[gameOverReason] ?? gameOverReason)
     : "A game-over condition was reached.";
+  const gameStatusLabel = GAME_STATUS_LABELS[gameStatus] ?? gameStatus.replaceAll("_", " ");
 
   const pageVariants: Variants = {
     hidden: { opacity: 0, y: 14 },
@@ -95,7 +136,7 @@ export function GameDashboard() {
       <section className="grid gap-4 sm:grid-cols-4 lg:grid-cols-7">
         <StatCard label="Score" value={score} />
         <StatCard label="Current Hand Value" value={currentHandValue} />
-        <StatCard label="Game Status" value={gameStatus} />
+        <GameStatusStatCard rawStatus={gameStatus} displayLabel={gameStatusLabel} />
         <StatCard label="Hands Played" value={history.length} />
         <StatCard label="Draw Pile" value={drawPileCount} />
         <StatCard label="Discard Pile" value={discardPileCount} />

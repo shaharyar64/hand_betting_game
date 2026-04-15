@@ -254,6 +254,24 @@ Tile labels in history:
 - `Active`: old active tile
 - `Drawn`: newly drawn tile for that round
 
+Game status display mapping in UI:
+
+- Backend status values are technical enums:
+  - `idle`
+  - `awaiting_bet`
+  - `resolved`
+  - `game_over`
+- Frontend renders user-friendly labels:
+  - `idle` -> `Idle`
+  - `awaiting_bet` -> `Awaiting`
+  - `resolved` -> `Resolved`
+  - `game_over` -> `Game over`
+- The status card uses color-coded badges to improve readability:
+  - Idle: neutral slate
+  - Awaiting: cyan
+  - Resolved: amber
+  - Game over: rose
+
 ---
 
 ## 11) Example Round Walkthrough

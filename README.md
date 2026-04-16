@@ -87,6 +87,5 @@ This repository includes both handwritten implementation and AI-assisted iterati
 
 ## Video Walkthrough
 
-Add your walkthrough link here after recording:
 
-- `TODO: replace with public video URL`
+- `https://drive.google.com/drive/folders/17gb-okAVyHJQdU-keAgGQE-tiiMkLsxm?usp=sharing`

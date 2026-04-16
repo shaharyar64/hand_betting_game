@@ -81,10 +81,6 @@ Frontend default URL: [http://localhost:3000](http://localhost:3000)
 - Detailed mechanics and calculation guide: `docs/Implementation_Documentation.md`
 - Deck sizing and configuration details: see sections `2`, `6`, and `12` in `docs/Implementation_Documentation.md`
 
-## AI Usage Note
-
-This repository includes both handwritten implementation and AI-assisted iteration. AI was used for selective drafting/refinement, while architecture decisions, acceptance-criteria alignment, and final validation were manually reviewed.
-
 ## Video Walkthrough
 
 

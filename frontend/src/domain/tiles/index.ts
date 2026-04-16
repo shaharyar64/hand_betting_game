@@ -1,3 +1,4 @@
+/** Module exports and wiring. */
 export type {
   DragonColor,
   DragonTile,

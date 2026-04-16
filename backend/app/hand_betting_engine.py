@@ -1,3 +1,5 @@
+"""Core hand betting engine with tile totals, scaling, and game-over rules."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -20,12 +22,16 @@ MAX_RESHUFFLES = 3
 
 @dataclass(slots=True)
 class CurrentHand:
+    """Hold the two visible tiles that define the current betting hand."""
+
     anchor_tile: Tile
     active_tile: Tile
 
 
 @dataclass(slots=True)
 class TileSnapshot:
+    """Freeze tile identity and value at round resolution time."""
+
     id: UUID
     type: str
     label: str
@@ -34,6 +40,8 @@ class TileSnapshot:
 
 @dataclass(slots=True)
 class HandHistoryEntry:
+    """Record one resolved round with totals, bet, and score changes."""
+
     anchor_tile_id: UUID
     active_tile_id: UUID
     drawn_tile_id: UUID
@@ -50,6 +58,8 @@ class HandHistoryEntry:
 
 @dataclass(slots=True)
 class GameState:
+    """Persist current hand, round history, score, and game status flags."""
+
     current_hand: CurrentHand | None = None
     history: list[HandHistoryEntry] = field(default_factory=list)
     score: int = 0
@@ -73,6 +83,7 @@ class HandBettingGameEngine:
         deck_service: DeckManagementService | None = None,
         initial_score: int = 0,
     ) -> None:
+        """Initialize engine state, deck service, and dynamic tile tracking."""
         self.deck_service = deck_service or DeckManagementService()
         self.state = GameState(score=initial_score)
         # Dynamic value overrides (mainly for non-number tiles).
@@ -80,6 +91,7 @@ class HandBettingGameEngine:
         self._tile_registry: dict[UUID, Tile] = {}
 
     def start_hand(self) -> GameState:
+        """Draw initial/next pair of tiles and move state to awaiting bet."""
         self._ensure_not_game_over()
         if self.state.current_hand is not None and self.state.game_status == "awaiting_bet":
             return self.state
@@ -95,6 +107,7 @@ class HandBettingGameEngine:
         return self.state
 
     def place_bet(self, bet: BetChoice) -> GameState:
+        """Store the player's higher/lower choice for the active hand."""
         self._ensure_not_game_over()
         if self.state.current_hand is None:
             raise RuntimeError("No active hand. Call start_hand() first.")
@@ -104,6 +117,7 @@ class HandBettingGameEngine:
         return self.state
 
     def resolve_hand(self) -> GameState:
+        """Draw the next tile, resolve outcome, and advance game state."""
         self._ensure_not_game_over()
         if self.state.current_hand is None:
             raise RuntimeError("No active hand. Call start_hand() first.")
@@ -173,6 +187,7 @@ class HandBettingGameEngine:
         return self.state
 
     def _draw_tile_or_end_game(self) -> Tile | None:
+        """Draw a tile or mark game-over when drawing is unavailable."""
         try:
             tile = self.deck_service.draw_tile()
         except RuntimeError:
@@ -185,9 +200,11 @@ class HandBettingGameEngine:
         return tile
 
     def _tile_value(self, tile: Tile) -> int:
+        """Read tile value with dynamic overrides applied."""
         return self._dynamic_values.get(tile.id, tile.value)
 
     def _apply_dynamic_scaling(self, tiles: list[Tile], outcome: RoundOutcome) -> None:
+        """Increase/decrease non-number tile values based on round outcome."""
         delta = SCALING_STEP if outcome == "win" else -SCALING_STEP
         for tile in tiles:
             if tile.type == "number":
@@ -196,6 +213,7 @@ class HandBettingGameEngine:
             self._dynamic_values[tile.id] = max(SCALING_MIN, min(SCALING_MAX, current + delta))
 
     def _is_game_over(self) -> bool:
+        """Check terminal value bounds and reshuffle-limit end conditions."""
         has_terminal_tile = any(
             value <= SCALING_MIN or value >= SCALING_MAX for value in self._dynamic_values.values()
         )
@@ -203,10 +221,12 @@ class HandBettingGameEngine:
         return has_terminal_tile or reshuffle_limit_reached
 
     def _set_game_over(self, reason: str) -> None:
+        """Mark state as game over with a machine-readable reason."""
         self.state.game_status = "game_over"
         self.state.game_over_reason = reason
 
     def _ensure_not_game_over(self) -> None:
+        """Reject operations that require a non-terminal game state."""
         if self.state.game_status == "game_over":
             raise RuntimeError("Game is over. Create a new engine instance for a new game.")
 
@@ -242,12 +262,15 @@ class HandBettingGameEngine:
 
     @property
     def draw_pile_count(self) -> int:
+        """Expose current draw pile size."""
         return len(self.deck_service.draw_pile)
 
     @property
     def discard_pile_count(self) -> int:
+        """Expose current discard pile size."""
         return len(self.deck_service.discard_pile)
 
     @property
     def reshuffle_count(self) -> int:
+        """Expose how many reshuffles have been used."""
         return self.deck_service.reshuffle_count

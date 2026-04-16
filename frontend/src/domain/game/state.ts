@@ -1,3 +1,4 @@
+/** Functional game-state transitions for the frontend domain model. */
 import {
   createTileDeck,
   discardTile,
@@ -61,6 +62,7 @@ function getScoreDelta(
   bet: number,
   specialTileScaling: Record<Tile["type"], number>,
 ): number {
+  /** Calculate score delta using outcome and tile-type scaling bonus. */
   if (outcome === "loss") {
     return LOSS_POINTS;
   }
@@ -71,10 +73,12 @@ function getScoreDelta(
 }
 
 function getScoreDepleted(score: number): boolean {
+  /** Return true when score reached zero or below. */
   return score <= 0;
 }
 
 export function createGameState(options: CreateGameOptions = {}): GameState {
+  /** Build initial game state and start the first hand. */
   const initialScore = options.initialScore ?? DEFAULT_INITIAL_SCORE;
   const maxHands = options.maxHands ?? DEFAULT_MAX_HANDS;
   const defaultBet = options.defaultBet ?? DEFAULT_BET;
@@ -94,6 +98,7 @@ export function createGameState(options: CreateGameOptions = {}): GameState {
 }
 
 export function startHand(state: GameState, bet: number = DEFAULT_BET): GameState {
+  /** Start a new hand if game is active and limits allow it. */
   if (state.gameOver || state.activeHand !== null) {
     return state;
   }
@@ -128,6 +133,7 @@ export function startHand(state: GameState, bet: number = DEFAULT_BET): GameStat
 }
 
 export function placeBet(state: GameState, bet: number): GameState {
+  /** Update bet value for the currently active hand. */
   if (!state.activeHand || state.gameOver) {
     return state;
   }
@@ -147,6 +153,7 @@ export function resolveHand(
   outcome: HandOutcome,
   options: Pick<CreateGameOptions, "specialTileScaling"> = {},
 ): GameState {
+  /** Resolve active hand outcome, update score/history, and set game-over flags. */
   if (!state.activeHand || state.gameOver) {
     return state;
   }

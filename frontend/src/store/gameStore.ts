@@ -1,8 +1,8 @@
+/** Zustand store that coordinates game API calls and UI state. */
 import { create } from "zustand";
 
 import {
   type BetChoice,
-  type DebugGameOverMode,
   gameApi,
   type HandPayload,
   type RoundHistoryPayload,
@@ -36,7 +36,6 @@ type GameStore = {
   drawAnimationKey: number;
   startNewGame: () => Promise<void>;
   placeBet: (choice: BetChoice) => Promise<void>;
-  forceGameOver: (mode: DebugGameOverMode) => Promise<void>;
   loadLeaderboard: () => Promise<void>;
   clearError: () => void;
 };
@@ -48,10 +47,12 @@ const EMPTY_HAND: HandPayload = {
   active_value: null,
 };
 
+/** Normalize unknown thrown values to user-facing error text. */
 function errorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
+/** Convert API snake_case history entries into UI-friendly objects. */
 function toRoundHistory(history: RoundHistoryPayload[]): RoundHistoryItem[] {
   return history.map((item, index) => ({
     id: history.length - index,
@@ -80,8 +81,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
   error: null,
   drawAnimationKey: 0,
 
+  /** Clear current user-facing error banner state. */
   clearError: () => set({ error: null }),
 
+  /** Refresh leaderboard entries from backend API. */
   loadLeaderboard: async () => {
     try {
       const response = await gameApi.getLeaderboard();
@@ -91,6 +94,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  /** Reset session state by creating a new backend game. */
   startNewGame: async () => {
     set({ loading: true, error: null });
     try {
@@ -115,6 +119,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
+  /** Submit higher/lower bet and apply returned round state. */
   placeBet: async (choice: BetChoice) => {
     set({ loading: true, error: null });
     try {
@@ -141,29 +146,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  forceGameOver: async (mode: DebugGameOverMode) => {
-    set({ loading: true, error: null });
-    try {
-      const response = await gameApi.forceGameOver(mode);
-      set((state) => ({
-        score: response.data.score,
-        gameStatus: response.data.game_status,
-        gameOverReason: response.data.game_over_reason,
-        hand: response.data.hand,
-        tiles: response.data.tiles,
-        drawPileCount: response.data.deck.draw_pile_count,
-        discardPileCount: response.data.deck.discard_pile_count,
-        reshuffleCount: response.data.deck.reshuffle_count,
-        history: toRoundHistory(response.data.history),
-        drawAnimationKey: state.drawAnimationKey + 1,
-      }));
-      await get().loadLeaderboard();
-    } catch (error) {
-      set({ error: errorMessage(error, "Failed to force game-over mode.") });
-    } finally {
-      set({ loading: false });
-    }
-  },
 }));
 
 export type { RoundHistoryItem };

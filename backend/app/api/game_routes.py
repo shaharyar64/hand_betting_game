@@ -1,3 +1,5 @@
+"""HTTP endpoints and payload serializers for the game session."""
+
 from __future__ import annotations
 
 from dataclasses import asdict
@@ -11,16 +13,21 @@ router = APIRouter(prefix="", tags=["game"])
 
 
 class GameSessionStore:
+    """Keep a single in-memory game engine and leaderboard for API calls."""
+
     def __init__(self) -> None:
+        """Initialize game engine and leaderboard state for the process."""
         self.engine = HandBettingGameEngine()
         self.leaderboard = LeaderboardService(max_entries=5)
 
     def reset(self) -> HandBettingGameEngine:
+        """Recreate engine state and start the first hand."""
         self.engine = HandBettingGameEngine()
         self.engine.start_hand()
         return self.engine
 
     def add_result(self, score: int) -> None:
+        """Store a completed game's final score."""
         self.leaderboard.add_score(score)
 
 
@@ -28,6 +35,7 @@ store = GameSessionStore()
 
 
 def _current_hand_payload(engine: HandBettingGameEngine) -> dict[str, int | str | None]:
+    """Serialize the active hand labels and values for API responses."""
     hand = engine.state.current_hand
     if hand is None:
         return {"anchor_label": None, "anchor_value": None, "active_label": None, "active_value": None}
@@ -41,6 +49,7 @@ def _current_hand_payload(engine: HandBettingGameEngine) -> dict[str, int | str 
 
 
 def _serialize_tile(tile: Tile) -> dict[str, str | int]:
+    """Serialize a tile into a JSON-safe dictionary."""
     return {
         "id": str(tile.id),
         "type": tile.type,
@@ -50,6 +59,7 @@ def _serialize_tile(tile: Tile) -> dict[str, str | int]:
 
 
 def _current_hand_tiles(engine: HandBettingGameEngine) -> list[dict[str, str | int]]:
+    """Return serialized anchor/active tiles for the current hand."""
     hand = engine.state.current_hand
     if hand is None:
         return []
@@ -57,6 +67,7 @@ def _current_hand_tiles(engine: HandBettingGameEngine) -> list[dict[str, str | i
 
 
 def _serialize_history_entry(entry: HandHistoryEntry) -> dict[str, object]:
+    """Serialize one resolved hand entry with tile snapshots and scoring."""
     return {
         "bet": entry.bet,
         "previous_total": entry.previous_total,
@@ -88,6 +99,7 @@ def _serialize_history_entry(entry: HandHistoryEntry) -> dict[str, object]:
 
 
 def _deck_payload(engine: HandBettingGameEngine) -> dict[str, int]:
+    """Expose draw/discard counts and reshuffle usage."""
     return {
         "draw_pile_count": engine.draw_pile_count,
         "discard_pile_count": engine.discard_pile_count,
@@ -96,6 +108,7 @@ def _deck_payload(engine: HandBettingGameEngine) -> dict[str, int]:
 
 
 def _game_state_payload(engine: HandBettingGameEngine) -> dict[str, object]:
+    """Build the full game payload used by state-returning endpoints."""
     return {
         "score": engine.state.score,
         "game_status": engine.state.game_status,
@@ -110,6 +123,7 @@ def _game_state_payload(engine: HandBettingGameEngine) -> dict[str, object]:
 
 @router.post("/new-game")
 async def new_game() -> dict[str, object]:
+    """Start a fresh game session and return initial state."""
     engine = store.reset()
     return {
         "ok": True,
@@ -120,6 +134,7 @@ async def new_game() -> dict[str, object]:
 
 @router.get("/hand")
 async def get_hand() -> dict[str, object]:
+    """Return the current hand and cumulative game state."""
     if store.engine.state.current_hand is None:
         raise HTTPException(status_code=404, detail="No active hand. Start a game with POST /new-game.")
 
@@ -143,6 +158,7 @@ async def get_hand() -> dict[str, object]:
 
 @router.post("/bet/{choice}")
 async def place_bet(choice: str) -> dict[str, object]:
+    """Resolve one betting round using the provided higher/lower choice."""
     normalized = choice.lower()
     if normalized not in {"higher", "lower"}:
         raise HTTPException(status_code=400, detail="Choice must be 'higher' or 'lower'.")
@@ -178,34 +194,10 @@ async def place_bet(choice: str) -> dict[str, object]:
 
 @router.get("/leaderboard")
 async def get_leaderboard() -> dict[str, object]:
+    """Return top leaderboard entries from in-memory storage."""
     return {
         "ok": True,
         "data": {
             "top": [asdict(item) for item in store.leaderboard.get_top_scores()],
         },
-    }
-
-
-@router.post("/debug/game-over/{mode}")
-async def debug_force_game_over(mode: str) -> dict[str, object]:
-    normalized = mode.lower()
-    if normalized == "terminal-tile":
-        tile_forced = store.engine.force_terminal_special_tile()
-        if not tile_forced:
-            raise HTTPException(
-                status_code=400,
-                detail="No tracked non-number tile yet. Resolve at least one round first.",
-            )
-    elif normalized == "reshuffle-limit":
-        store.engine.force_reshuffle_limit_game_over()
-    else:
-        raise HTTPException(status_code=400, detail="Mode must be 'terminal-tile' or 'reshuffle-limit'.")
-
-    if store.engine.state.game_status == "game_over":
-        store.add_result(score=store.engine.state.score)
-
-    return {
-        "ok": True,
-        "message": f"Forced game over mode: {normalized}",
-        "data": _game_state_payload(store.engine),
     }

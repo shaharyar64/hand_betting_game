@@ -1,3 +1,4 @@
+/** Client wrappers and response contracts for backend game endpoints. */
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8001";
 
 export type BetChoice = "higher" | "lower";
@@ -92,14 +93,7 @@ export type LeaderboardResponse = {
   };
 };
 
-export type DebugGameOverMode = "terminal-tile" | "reshuffle-limit";
-
-export type DebugGameOverResponse = {
-  ok: boolean;
-  message: string;
-  data: NewGameResponse["data"];
-};
-
+/** Perform a JSON request and throw normalized API errors. */
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
@@ -126,11 +120,13 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const gameApi = {
+  /** Start a new game session and return initial state. */
   newGame: () => request<NewGameResponse>("/new-game", { method: "POST" }),
+  /** Fetch the currently active hand and game state. */
   getHand: () => request<HandResponse>("/hand"),
+  /** Resolve one round using the provided higher/lower choice. */
   placeBet: (choice: BetChoice) =>
     request<BetResponse>(`/bet/${choice}`, { method: "POST" }),
+  /** Fetch top leaderboard entries. */
   getLeaderboard: () => request<LeaderboardResponse>("/leaderboard"),
-  forceGameOver: (mode: DebugGameOverMode) =>
-    request<DebugGameOverResponse>(`/debug/game-over/${mode}`, { method: "POST" }),
 };

@@ -1,1 +1,1 @@
-# FastAPI application package.
+"""Backend application package."""

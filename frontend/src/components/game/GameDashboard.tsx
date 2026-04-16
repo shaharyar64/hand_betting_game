@@ -1,5 +1,6 @@
 "use client";
 
+/** Main gameplay dashboard with controls, history, and leaderboard. */
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -29,6 +30,7 @@ const GAME_STATUS_BADGE_CLASS: Record<string, string> = {
 };
 
 function GameStatusStatCard({ rawStatus, displayLabel }: { rawStatus: string; displayLabel: string }) {
+  /** Render status card with style mapped from raw backend status. */
   const badgeClass =
     GAME_STATUS_BADGE_CLASS[rawStatus] ?? "border border-slate-600 bg-slate-800 text-slate-200";
 
@@ -47,6 +49,7 @@ function GameStatusStatCard({ rawStatus, displayLabel }: { rawStatus: string; di
 }
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
+  /** Render a compact stat tile for dashboard metrics. */
   const isLongTextValue = typeof value === "string" && value.length > 10;
 
   return (
@@ -64,6 +67,7 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 }
 
 export function GameDashboard() {
+  /** Orchestrate game UI by binding store state to dashboard components. */
   const score = useGameStore((state) => state.score);
   const gameStatus = useGameStore((state) => state.gameStatus);
   const hand = useGameStore((state) => state.hand);

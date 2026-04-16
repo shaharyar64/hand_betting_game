@@ -1,3 +1,4 @@
+/** Builders for Mahjong-inspired tile sets and deck-size metadata. */
 import {
   type DragonColor,
   type NumberRank,
@@ -26,12 +27,14 @@ const DEFAULT_DRAGON_COLORS: DragonColor[] = ["red", "green", "white"];
 const DEFAULT_COPIES_PER_TILE = 4;
 
 function titleCase(value: string): string {
+  /** Uppercase first character for display labels. */
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 export function createMahjongTileSet(
   options: MahjongSetOptions = {},
 ): Tile[] {
+  /** Create number, wind, and dragon tiles using configurable options. */
   const copiesPerTile = options.copiesPerTile ?? DEFAULT_COPIES_PER_TILE;
   const numberSuits = options.numberSuits ?? DEFAULT_NUMBER_SUITS;
   const numberRanks = options.numberRanks ?? DEFAULT_NUMBER_RANKS;
@@ -81,6 +84,7 @@ export function createMahjongTileSet(
 export function getMahjongTileSetCount(
   options: MahjongSetOptions = {},
 ): number {
+  /** Return how many tiles are produced by current set options. */
   return createMahjongTileSet(options).length;
 }
 

@@ -1,3 +1,4 @@
+/** Application module. */
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
   description: "Mahjong-inspired hand betting game UI",
 };
 
+/** Apply global fonts and page shell for all routes. */
 export default function RootLayout({
   children,
 }: Readonly<{

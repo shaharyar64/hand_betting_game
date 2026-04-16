@@ -1,3 +1,5 @@
+"""Application entrypoint and API router wiring for the hand betting backend."""
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -21,5 +23,6 @@ app.add_middleware(
 
 @app.get("/health", tags=["system"])
 async def health_check() -> dict[str, str]:
+    """Return a basic readiness status for health monitoring."""
     return {"status": "ok"}
 app.include_router(game_router)

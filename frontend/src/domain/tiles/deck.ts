@@ -1,3 +1,4 @@
+/** Tile deck utilities for shuffle, draw, discard, and reshuffle flow. */
 import { createMahjongTileSet, type MahjongSetOptions } from "./factory";
 import type { Tile } from "./types";
 
@@ -23,6 +24,7 @@ export type DrawTileResult = {
 };
 
 function shuffleTiles(tiles: Tile[], random: () => number): Tile[] {
+  /** Return a Fisher-Yates shuffled copy of tile input. */
   const shuffled = [...tiles];
   for (let i = shuffled.length - 1; i > 0; i -= 1) {
     const j = Math.floor(random() * (i + 1));
@@ -32,6 +34,7 @@ function shuffleTiles(tiles: Tile[], random: () => number): Tile[] {
 }
 
 export function createTileDeck(options: CreateTileDeckOptions = {}): TileDeckState {
+  /** Build an initialized deck state with shuffled draw pile. */
   const random = options.random ?? Math.random;
   const maxReshuffles = options.maxReshuffles ?? DEFAULT_MAX_RESHUFFLES;
   const tiles = createMahjongTileSet(options.setOptions);
@@ -45,6 +48,7 @@ export function createTileDeck(options: CreateTileDeckOptions = {}): TileDeckSta
 }
 
 export function discardTile(state: TileDeckState, tile: Tile): TileDeckState {
+  /** Append a tile to discard pile while preserving immutability. */
   return {
     ...state,
     discardPile: [...state.discardPile, tile],
@@ -52,6 +56,7 @@ export function discardTile(state: TileDeckState, tile: Tile): TileDeckState {
 }
 
 export function canReshuffle(state: TileDeckState): boolean {
+  /** Check whether reshuffle conditions are currently satisfied. */
   return (
     state.drawPile.length === 0 &&
     state.discardPile.length > 0 &&
@@ -63,6 +68,7 @@ export function reshuffleDiscardIntoDrawPile(
   state: TileDeckState,
   random: () => number = Math.random,
 ): TileDeckState {
+  /** Move discard pile into draw pile, shuffle, and increment reshuffle usage. */
   if (!canReshuffle(state)) {
     return state;
   }
@@ -79,6 +85,7 @@ export function drawTile(
   state: TileDeckState,
   random: () => number = Math.random,
 ): DrawTileResult {
+  /** Draw one tile and trigger reshuffle automatically when eligible. */
   let nextState = state;
   let reshuffled = false;
 

@@ -1,3 +1,4 @@
+/** Application module. */
 export type TileType = "number" | "wind" | "dragon";
 
 export type NumberSuit = "dots" | "bamboo" | "characters";

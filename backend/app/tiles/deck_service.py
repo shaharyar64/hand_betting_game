@@ -1,3 +1,5 @@
+"""Deck lifecycle service for draw, discard, and bounded reshuffle flow."""
+
 from __future__ import annotations
 
 import random
@@ -12,6 +14,8 @@ MAX_RESHUFFLE_COUNT = 3
 
 @dataclass(slots=True)
 class DeckState:
+    """Mutable draw/discard piles and reshuffle usage counters."""
+
     draw_pile: list[Tile] = field(default_factory=list)
     discard_pile: list[Tile] = field(default_factory=list)
     reshuffle_count: int = 0
@@ -30,6 +34,7 @@ class DeckManagementService:
         randomizer: random.Random | None = None,
         max_reshuffle_count: int = MAX_RESHUFFLE_COUNT,
     ) -> None:
+        """Configure dependencies and build the initial draw pile."""
         self._tile_factory = tile_factory or TileFactory()
         self._randomizer = randomizer or random.Random()
         self._max_reshuffle_count = max_reshuffle_count
@@ -38,14 +43,17 @@ class DeckManagementService:
 
     @property
     def draw_pile(self) -> list[Tile]:
+        """Expose current draw pile tiles."""
         return self._state.draw_pile
 
     @property
     def discard_pile(self) -> list[Tile]:
+        """Expose current discard pile tiles."""
         return self._state.discard_pile
 
     @property
     def reshuffle_count(self) -> int:
+        """Expose number of reshuffles already performed."""
         return self._state.reshuffle_count
 
     def create_deck(self) -> list[Tile]:
@@ -54,6 +62,7 @@ class DeckManagementService:
         return self._state.draw_pile
 
     def shuffle_deck(self) -> None:
+        """Shuffle the current draw pile in place."""
         self._randomizer.shuffle(self._state.draw_pile)
 
     def draw_tile(self) -> Tile:
@@ -71,6 +80,7 @@ class DeckManagementService:
         return self._state.draw_pile.pop()
 
     def discard_tile(self, tile: Tile) -> None:
+        """Add a used tile to the discard pile."""
         self._state.discard_pile.append(tile)
 
     def reshuffle(self) -> None:

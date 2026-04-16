@@ -1,3 +1,5 @@
+"""Leaderboard package exports for score tracking services."""
+
 from .service import (
     InMemoryLeaderboardStore,
     LeaderboardService,

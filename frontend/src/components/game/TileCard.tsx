@@ -1,5 +1,6 @@
 "use client";
 
+/** Animated visual card for displaying a Mahjong tile and value. */
 import { motion, type Variants } from "framer-motion";
 
 type TileCardProps = {
@@ -11,6 +12,7 @@ type TileCardProps = {
 };
 
 function getTilePalette(tileType: string | undefined, label: string) {
+  /** Resolve tile color palette by tile type and label. */
   const normalizedLabel = label.trim().toLowerCase();
   const normalizedType = (tileType ?? "").trim().toLowerCase();
 
@@ -93,6 +95,7 @@ export function TileCard({
   resultState = null,
   accentClassName = "",
 }: TileCardProps) {
+  /** Render one tile card with outcome glow and hover animation. */
   const tilePalette = getTilePalette(type, label);
   const glowShadow =
     resultState === "win"

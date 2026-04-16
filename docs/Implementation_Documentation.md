@@ -228,12 +228,6 @@ Entry shape:
 - `GET /leaderboard`
   - returns top 5 scores
 
-Debug/testing endpoint:
-
-- `POST /debug/game-over/{mode}`
-  - `mode` in `{terminal-tile, reshuffle-limit}`
-  - forces terminal game-over for QA/testing
-
 ---
 
 ## 10) Frontend Calculation Display Mapping

@@ -1,5 +1,6 @@
 "use client";
 
+/** Marketing-style landing page with quick leaderboard preview. */
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -11,12 +12,14 @@ type LeaderboardItem = {
   created_at: string;
 };
 
+/** Load leaderboard summary and render the game entry point. */
 export function PremiumLandingPage() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
 
   useEffect(() => {
     let mounted = true;
 
+    /** Fetch leaderboard preview; fall back to empty state on error. */
     async function loadLeaderboard() {
       try {
         const response = await gameApi.getLeaderboard();

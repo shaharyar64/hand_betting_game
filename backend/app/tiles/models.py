@@ -1,3 +1,5 @@
+"""Tile domain model definitions used by deck and game logic."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -9,6 +11,8 @@ TileType = Literal["number", "wind", "dragon"]
 
 @dataclass(frozen=True, slots=True)
 class Tile:
+    """Immutable tile entity with identity, type, label, and numeric value."""
+
     id: UUID = field(default_factory=uuid4)
     type: TileType = "number"
     value: int = 0
